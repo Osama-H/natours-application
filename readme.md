@@ -21,7 +21,7 @@
 
 The Natours web application is a fictional tour booking platform built with Node.js, Express.js, and MongoDB. This README provides an overview of the application, its features, and instructions on how to set it up and use it.
 
-![Screenshot](link_to_screenshot.png)
+![Screenshot](https://prnt.sc/VB9RFef7ePML)
 
 ## Features
 
