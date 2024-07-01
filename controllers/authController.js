@@ -4,19 +4,11 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/userModel');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
-const sendEmail = require('../utils/email');
+const Email = require('../utils/email');
 
 const dotenv = require('dotenv');
 
-
 dotenv.config({ path: '../config.env' });
-
-// const signToken = (id) =>{
-//   const token = jwt.sign(id,process.env.JWT_SECRET,{
-//     expiresIn : process.env.JWT_EXPIRES_IN
-//   });
-
-// }
 
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
@@ -27,12 +19,12 @@ exports.signup = catchAsync(async (req, res, next) => {
     passwordChangedAt: req.body.passwordChangedAt,
     role: req.body.role,
   });
+  const url = `${req.protocol}://${req.get('host')}/me`;
+  await new Email(newUser, url).sendWelcome();
 
   const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
   });
-
-  // const token = signToken(newUser._id);
 
   res.cookie('jwt', token, {
     expiresIn: new Date(
@@ -43,7 +35,7 @@ exports.signup = catchAsync(async (req, res, next) => {
   });
 
   newUser.password = undefined;
-  
+
   res.status(201).json({
     status: 'success',
     token,
@@ -79,9 +71,9 @@ exports.login = catchAsync(async (req, res, next) => {
     ),
     secure: true, // for sensitive data
     httpOnly: true,
-  }
+  };
 
-res.cookie('jwt', token,cookieOptions)
+  res.cookie('jwt', token, cookieOptions);
 
   res.status(200).json({
     status: 'success',
@@ -89,25 +81,16 @@ res.cookie('jwt', token,cookieOptions)
   });
 });
 
-exports.logout = (req,res)=>{
-
-  res.cookie('jwt','loggedout',{
-    expiresIn : new Date(Date.now() + 10*1000),
-    httpOnly : true
-  })
-
-  // res.clearCookie('jwt');
+exports.logout = (req, res) => {
+  res.cookie('jwt', 'loggedout', {
+    expiresIn: new Date(Date.now() + 10 * 1000),
+    httpOnly: true,
+  });
 
   res.status(200).json({
-    status : "success"
-  })
-
-}
-
-
-
-
-
+    status: 'success',
+  });
+};
 
 exports.protect = catchAsync(async (req, res, next) => {
   let token;
@@ -117,8 +100,8 @@ exports.protect = catchAsync(async (req, res, next) => {
     req.headers.authorization.startsWith('Bearer')
   ) {
     token = req.headers.authorization.split(' ')[1];
-  }else if(req.cookies.jwt){
-    token = req.cookies.jwt
+  } else if (req.cookies.jwt) {
+    token = req.cookies.jwt;
   }
   if (!token) {
     return next(
@@ -130,7 +113,6 @@ exports.protect = catchAsync(async (req, res, next) => {
     token,
     process.env.JWT_SECRET
   );
-  // console.log(decodedPayload);
   // 3) Check if user still exists
   const currentUser = await User.findById(decodedPayload.id);
   if (!currentUser) {
@@ -152,45 +134,6 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   next();
 });
-
-// // Only for rendered pages, no error !
-// exports.isLoggedIn = async (req, res, next) => {
-//   try{
-
-
-//    if(req.cookies.jwt){
-    
-//     // 1) verify roken  
-  
-//     const decodedPayload = await promisify(jwt.verify)(
-//     req.cookies.jwt,
-//     process.env.JWT_SECRET
-//   );
-  
-//   // console.log(decodedPayload);
-
-//   // 2) Check if user still exists
-
-//   const currentUser = await User.findById(decodedPayload.id);
-
-//   if (!currentUser) {
-//     return next();
-//   }
-
-//   // 3) Check if User changed password after the token was issued
-
-//   if (currentUser.changedPasswordAfter(decodedPayload.iat)) {
-//     return next();
-//   }
-
-//   // There is a logged in user
-
-//   res.locals.user = currentUser;
-//   next();
-// }catch(err){
-//   return next();
-//  }}
-// };
 
 exports.isLoggedIn = async (req, res, next) => {
   if (req.cookies.jwt) {
@@ -222,8 +165,6 @@ exports.isLoggedIn = async (req, res, next) => {
   next();
 };
 
-
-
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     // roles ['admin','lead-guide']
@@ -251,18 +192,12 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
   // 3) Send it to user's email
 
-  const resetURL = `${req.protocol}://${req.get(
-    'host'
-  )}/api/v1/users/resetPassword/${resetToken}`;
-
-  const message = `Forgot Your Password? submit a PATCH request with your new password and password confirm to : ${resetURL}`;
-
   try {
-    await sendEmail({
-      email: user.email,
-      subject: 'Your Password reset Token',
-      message,
-    });
+    const resetURL = `${req.protocol}://${req.get(
+      'host'
+    )}/api/v1/users/resetPassword/${resetToken}`;
+
+    await new Email(user, resetURL).sendPasswordReset();
 
     res.status(200).json({
       status: 'success',
@@ -289,7 +224,6 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     .update(req.params.token)
     .digest('hex');
 
-    
   const user = await User.findOne({
     passwordResetToken: hashedToken,
     passwordResetExpires: { $gt: Date.now() },
@@ -323,13 +257,9 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     ),
     secure: true,
     httpOnly: true,
-  }
+  };
 
-  
-
-res.cookie('jwt', token,cookieOptions)
-
-
+  res.cookie('jwt', token, cookieOptions);
 
   res.status(200).json({
     status: 'success',
@@ -372,5 +302,3 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
     user,
   });
 });
-
-

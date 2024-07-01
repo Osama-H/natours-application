@@ -2,9 +2,7 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const app = require('./app');
 
-dotenv.config({ path: './config.env' }); // object to where the configuration file is located
-
-// console.log(process.env);  // log all the environment variable to the console
+dotenv.config({ path: './config.env' });
 
 const DB = process.env.DATABASE;
 
@@ -15,16 +13,14 @@ mongoose
     useFindAndModify: false,
     useUnifiedTopology: true,
   })
-  .then((con) => {
-    // this is the connection object
+  .then(() => {
     console.log(`DataBase Connection successful !`);
   })
-  .catch((err) => {
+  .catch(() => {
     console.log("There's an error in the connection of data");
   });
 
 const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`App running on port ${port}`);
-
 });

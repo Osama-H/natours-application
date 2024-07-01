@@ -13,12 +13,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'A user email must be provided'],
     unique: true,
-    lowercase: true, // now we will test if the email that corresponds to the common email format ..
+    lowercase: true,
     validate: [validator.isEmail, 'Please Provide a valid email'],
   },
   photo: {
-    type : String,
-    default : 'default.jpg'
+    type: String,
+    default: 'default.jpg',
   },
   role: {
     type: String,
@@ -66,8 +66,6 @@ userSchema.pre(/^find/, function (next) {
   next();
 });
 
-// instance method is basically a method that is gonna be available on all documents on a certain collection
-
 userSchema.methods.correctPassword = async function (
   candidatePassword,
   userPassword
@@ -76,14 +74,11 @@ userSchema.methods.correctPassword = async function (
 };
 
 userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
-  // timestamp when the token was issued
-
   if (this.passwordChangedAt) {
     const changedTimeStamp = parseInt(
       this.passwordChangedAt.getTime() / 1000,
       10
     );
-    // console.log(changedTimeStamp, JWTTimestamp);
     return JWTTimestamp < changedTimeStamp; // 100 < 200
   }
 
@@ -91,9 +86,7 @@ userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
   return false;
 };
 
-
 userSchema.pre('save', function (next) {
-  // is gonna run before a new document is actually saved
   if (!this.isModified('password') || this.isNew) {
     return next();
   }
@@ -110,7 +103,7 @@ userSchema.methods.createPasswordResetToken = function () {
 
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
 
-  return resetToken; // that what we want to return the plain text token through the email
+  return resetToken;
 };
 
 module.exports = mongoose.model('User', userSchema);

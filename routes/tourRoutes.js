@@ -6,7 +6,7 @@ const reviewRouter = require('./reviewRoutes');
 
 const router = express.Router();
 
-// router.param('id',tourController.checkID)
+
 
 router
   .route('/top-5-cheap')
@@ -22,7 +22,6 @@ router
     tourController.getMonthlyPlan
   );
 
-// center => where u live ..
 router
   .route('/tours-within/:distance/center/:latlng/unit/:unit')
   .get(tourController.getToursWithin);
@@ -54,12 +53,8 @@ router
   );
 
 // POST /tour/234ff/reviews
-
 // GET /tour/234ff/reviews
-
 // GET /tour/234ff/reviews/12412
-
-// router.route('/:tourId/reviews').post(authController.protect, authController.restrictTo('user'), reviewController.createReview);
 
 router.use('/:tourId/reviews', reviewRouter);
 
